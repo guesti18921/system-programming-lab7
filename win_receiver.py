@@ -1,0 +1,39 @@
+import win32gui
+import win32con
+import win32process
+import os
+
+# Уникальный код нашего пользовательского сообщения
+WM_MY_COMMAND = win32con.WM_USER + 1337
+
+def window_procedure(hwnd, msg, wparam, lparam):
+    """Низкоуровневая функция — обработчик очереди сообщений ядра"""
+    if msg == WM_MY_COMMAND:
+        print("\n[ПРИЕМНИК] Перехвачено системное сообщение WM_USER+1337!")
+        print(f"[ПРИЕМНИК] Параметр команды (WPARAM): {wparam}")
+        if wparam == 777:
+            print("[ПРИЕМНИК] Сигнал подтвержден. Выполняем экстренное завершение процесса...")
+            os._exit(0)
+        return 0
+
+    # Остальные стандартные сообщения передаём ОС
+    return win32gui.DefWindowProc(hwnd, msg, wparam, lparam)
+
+# Регистрируем класс окна
+wc = win32gui.WNDCLASS()
+wc.lpfnWndProc = window_procedure
+wc.lpszClassName = "SysProgHiddenReceiverClass"
+class_atom = win32gui.RegisterClass(wc)
+
+# Создаём скрытое окно
+hwnd = win32gui.CreateWindow(
+    class_atom, "SysProgReceiverWindow",
+    0, 0, 0, 0, 0, 0, 0, 0, None
+)
+
+print(f"[ПРИЕМНИК] Процесс запущен. Мой PID: {os.getpid()}")
+print(f"[ПРИЕМНИК] Ядро Windows выделило нам дескриптор HWND: {hwnd}")
+print("[ПРИЕМНИК] Входим в бесконечный системный цикл выборки сообщений GetMessage()...")
+
+# Запускаем цикл выборки сообщений
+win32gui.PumpMessages()
